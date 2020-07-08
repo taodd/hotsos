@@ -1,0 +1,17 @@
+#!/bin/bash -u
+
+((VERBOSITY_LEVEL>=3)) || exit 0
+
+has_smaps=`find ${DATA_ROOT}proc -type f -name smaps| wc -l`
+if ((has_smaps)); then
+    echo "${INDENT_STR}hugepages:"
+    readarray -t lines<<<`grep -e AnonHugePages ${DATA_ROOT}proc/*/smaps| awk '{ if($2>4) print $0}'`
+    for line in "${lines[@]}"; do
+        pid=`echo $line| awk -F '/' '{print $3}'`
+        [ -n "$pid" ] || continue
+        get_ps| awk "\$2==$pid {print \$NF}"| xargs -l -I{} echo "  ${INDENT_STR}{}"
+    done
+else
+    echo "  ${INDENT_STR}no smaps info"
+fi
+
