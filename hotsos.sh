@@ -27,11 +27,13 @@ export DATA_ROOT
 export OPENSTACK_SHOW_CPU_PINNING_RESULTS=false
 # This is the path to the end product that plugins can see along the way.
 export MASTER_YAML_OUT
+export USER_INPUT
 
 # import helpers functions
 . `dirname $0`/common/helpers.sh
 
 SAVE_OUTPUT=false
+I_WANT_SPECIAL_SOS=false
 declare -a SOS_PATHS=()
 # unordered
 declare -A PLUGINS=(
@@ -118,6 +120,13 @@ while (($#)); do
         --system)
             PLUGINS[system]=true
             ;;
+        --specialsos)
+            I_WANT_SPECIAL_SOS=true
+            ;;
+        --filter)
+            USER_INPUT=$2
+            shift
+            ;;
         -s|--save)
             SAVE_OUTPUT=true
             ;;
@@ -140,6 +149,11 @@ while (($#)); do
     esac
     shift
 done
+
+if $I_WANT_SPECIAL_SOS; then
+    VERBOSITY_LEVEL=3
+    PLUGINS[all]=true
+fi
 
 ((${#SOS_PATHS[@]})) || SOS_PATHS=( / )
 
@@ -193,6 +207,10 @@ for data_root in ${SOS_PATHS[@]}; do
             done
         done
     done
+
+    if $I_WANT_SPECIAL_SOS; then
+        $CWD/overlays/apply
+    fi
 
     if $SAVE_OUTPUT; then
         if [[ $data_root != "/" ]]; then

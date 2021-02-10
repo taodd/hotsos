@@ -1,0 +1,3 @@
+#!/bin/bash
+cwd=`dirname $0`
+$cwd/openstack/get_extended_vm_info.py
