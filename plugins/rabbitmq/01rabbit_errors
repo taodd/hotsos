@@ -1,0 +1,34 @@
+#!/usr/bin/python3
+from common import (
+    helpers,
+)
+from openstack_utils import (
+    get_agent_exceptions,
+)
+
+RABBIT_ERROR_INFO = {}
+
+
+def get_agents_exceptions():
+    
+closing AMQP connection <0.249.4> (10.5.1.133:36954 -> 10.5.1.98:5672 - mod_wsgi:7666:43647938-cdf5-49b2-b6c6-5b5d475d75c5):
+missed heartbeats from client, timeout: 20s
+    
+    exc_types = [""]
+    e = get_agent_exceptions(agent, NOVA_LOGS, exc_types,
+                             include_time_in_key=AGENT_ERROR_KEY_BY_TIME)
+    if e:
+        RABBIT_ERROR_INFO[agent] = e
+
+
+if __name__ == "__main__":
+    get_agents_exceptions()
+    if RABBIT_ERROR_INFO:
+        RABBIT_ERROR_INFO = {"errors": RABBIT_ERROR_INFO}
+        if not helpers.HOTSOSYaml.master_has_plugin("rabbitmq-server"):
+            RABBIT_ERROR_INFO = {"rabbitmq-server": RABBIT_ERROR_INFO}
+            indent = 0
+        else:
+            indent = 2
+
+        helpers.HOTSOSYaml.dump(RABBIT_ERROR_INFO, indent=indent)
