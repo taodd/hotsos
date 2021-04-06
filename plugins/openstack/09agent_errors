@@ -6,6 +6,7 @@ from common import (
     searchtools,
     plugin_yaml,
 )
+from common.known_bugs_utils import add_known_bug
 from openstack_common import (
     OPENSTACK_AGENT_ERROR_KEY_BY_TIME as AGENT_ERROR_KEY_BY_TIME,
     NEUTRON_LOGS,
@@ -48,6 +49,21 @@ def add_agent_terms(searcher, service):
                                      hint=exc_type)
 
 
+def add_bug_search_terms(searcher):
+    data_source = os.path.join(constants.DATA_ROOT, 'var/log/syslog')
+    if constants.USE_ALL_LOGS:
+        data_source = "{}*".format(data_source)
+
+    searcher.add_search_term(".+Unknown configuration entry 'no_track' for "
+                             "ip address - ignoring.*", [0], data_source,
+                             tag="1896506")
+
+
+def process_bug_results(results, tag):
+    if results.find_by_tag(tag):
+        add_known_bug(tag)
+
+
 def process_results(results, service):
     for agent in AGENT_NAMES[service]:
         e = get_agent_exceptions(results.find_by_tag(agent),
@@ -63,9 +79,11 @@ def get_agents_exceptions():
     s = searchtools.FileSearcher()
     add_agent_terms(s, "neutron")
     add_agent_terms(s, "nova")
+    add_bug_search_terms(s)
     results = s.search()
     process_results(results, "neutron")
     process_results(results, "nova")
+    process_bug_results(results, "1896506")
 
 
 if __name__ == "__main__":
